@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>AI Loan Chatbot</title>
+  <style>
+    body { background-color: #f3e5f5; font-family:Garamond, serif;font-size: x-large; color: #06020a; margin: 0; }
+    header, footer { background-color: #6a1b9a; color: white; text-align: center; padding: 15px; }
+    nav a { color: white; margin: 0 15px; text-decoration: none; font-weight: bold; }
+    nav a:hover { text-decoration: underline; }
+    .container { text-align: center; margin-top: 100px; }
+    button {
+      background-color: #8e24aa; color: white; border: none;
+      padding: 12px 25px; border-radius: 8px; cursor: pointer; font-size: 16px;
+    }
+    button:hover { background-color: #6a1b9a; }
+    iframe {
+      width: 90%; height: 700px; border: 2px solid #8e24aa; border-radius: 10px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>AI Loan Chatbot</h1>
+    <nav>
+        <a href="{{ url_for('home') }}" style="color:white; margin:0 15px; text-decoration:none;">Home</a>
+        <a href="{{ url_for('about') }}" style="color:white; margin:0 15px; text-decoration:none;">About</a>
+        <a href="{{ url_for('prediction') }}" style="color:white; margin:0 15px; text-decoration:none;">Prediction</a>
+    </nav>
+  </header>
+
+  <div class="container">
+    <h2>Chat with our AI-powered Loan Assistant 🤖</h2>
+    <p>Click below to open your interactive chatbot that uses Gemini + ML model for personalized loan eligibility advice.</p>
+    <button onclick="window.open('http://localhost:8501', '_blank')">Open Chatbot</button>
+    <p style="margin-top:20px;">(Make sure you've started the chatbot using <b>streamlit run chatbot.py</b>)</p>
+  </div>
+
+  <footer>
+    &copy; 2025 Loan Advisor | Built by Dhyana
+  </footer>
+</body>
+</html>

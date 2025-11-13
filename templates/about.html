@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>About - Loan Eligibility Advisor</title>
+  <style>
+    body {
+      background-color: #f3e5f5;
+      font-family: Garamond, serif;
+      font-size: x-large;
+      color: #000000;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background-color: #6a1b9a;
+      color: white;
+      padding: 15px;
+      text-align: center;
+    }
+    nav a {
+      color: white;
+      margin: 0 15px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    nav a:hover {
+      text-decoration: underline;
+    }
+    .container {
+      text-align: center;
+      margin-top: 50px;
+    }
+    footer {
+      background-color: #6a1b9a;
+      color: white;
+      text-align: center;
+      padding: 10px;
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>AI Loan Eligibility Advisor</h1>
+    <nav>
+      <div style="background-color:#6a0dad; padding:15px; text-align:center;">
+        <a href="{{ url_for('home') }}" style="color:white; margin:0 15px; text-decoration:none; font-weight:bold;">Home</a>
+        <a href="{{ url_for('prediction') }}" style="color:white; margin:0 15px; text-decoration:none; font-weight:bold;">Prediction</a>
+        <a href="{{ url_for('chatbot') }}" style="color:white; margin:0 15px; text-decoration:none;">Chatbot</a>
+        
+    </div>
+
+    </nav>
+  </header>
+
+  <div class="container">
+    <h2>About Us</h2>
+    <p><strong>Our Mission</strong>: We aim to provide <strong>innovative, efficient, and easy-to-use</strong> financial tools that 
+                assist individuals in making better financial decisions. Our mission is to simplify 
+                complex loan application processes using advanced technology like <strong>Machine Learning</strong> and <strong>AI</strong>.</p>
+
+    <p>This AI-powered Loan Eligibility Advisor helps users check their eligibility
+       for a loan using a trained machine learning model.</p>
+    <p>It uses real-world financial parameters like income, credit history,
+       and loan amount to give accurate eligibility predictions.</p>
+  </div>
+
+  <footer>
+    &copy; 2025 Loan Advisor | All Rights Reserved
+  </footer>
+</body>
+</html>

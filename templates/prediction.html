@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang ="en">
+<head>
+    <meta charset="UTF-8">
+    <title> Loan Prediction Result</title>
+    <style>
+        body {font-family: Garamond, serif; font-size: larger; background: #f7f7f7;text-align: center;padding: 50px;}
+        .result-box {background: white; padding: 30px;display: inline-block;border-radius: 12px; box-shadow: 0 3px 8px rgba(0,0,0,0.2)}
+        h1 { color: #670086} 
+        p {font-size: 20px; color: #333;}
+        a { display: inline-block;margin-top: 15px;text-decoration: none;color: white;background: #af1eb4;padding: 10px 20px;border-radius: 6px;}
+        a:hover{background: #cc41fa;}   
+</style>
+</head>
+<body>
+    <header>
+        <h1>Prediction Page</h1>
+        <nav>
+            <a href="{{ url_for('home') }}" style="color:white; margin:0 15px; text-decoration:none;">Home</a>
+            <a href="{{ url_for('about') }}" style="color:white; margin:0 15px; text-decoration:none;">About</a>
+            <a href="{{ url_for('chatbot') }}" style="color:white; margin:0 15px; text-decoration:none;">Chatbot</a>
+        </nav>
+    </header>
+    <br>
+    <div class="result-box">
+        <h1>Loan Eligibility Result</h1>
+        <p>{{ prediction_text}}</p>
+        <a href="/">Go Back</a>
+    </div>
+</body>
+</html>
