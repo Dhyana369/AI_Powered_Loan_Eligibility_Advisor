@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | Loan Advisor</title>
+
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: "Poppins", sans-serif;
+            background: #f5f7fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .card {
+            background: white;
+            padding: 40px 35px;
+            width: 350px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+
+        h2 {
+            font-weight: 600;
+            color: #2d3436;
+            margin-bottom: 25px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 14px;
+            margin-bottom: 16px;
+            border-radius: 8px;
+            border: 1px solid #dfe6e9;
+            background: #f8f9fa;
+            font-size: 15px;
+            outline: none;
+            transition: 0.2s;
+        }
+
+        input:focus {
+            border-color: #4c6ef5;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #4c6ef5;
+            border: none;
+            color: white;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 5px;
+        }
+
+        button:hover {
+            background: #3b5bdb;
+        }
+
+        .small-text {
+            margin-top: 12px;
+            font-size: 14px;
+        }
+
+        a {
+            color: #4c6ef5;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .error {
+            color: red;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+    </style>
+
+</head>
+<body>
+
+    <div class="card">
+        <h2>Login</h2>
+
+        {% if error %}
+            <p class="error">{{ error }}</p>
+        {% endif %}
+
+        <form method="POST">
+            <input type="text" name="username" placeholder="Username" required>
+
+            <input type="password" name="password" placeholder="Password" required>
+
+            <button type="submit">Login</button>
+        </form>
+
+        <p class="small-text">Don't have an account? <a href="/signup">Sign up</a></p>
+    </div>
+
+</body>
+</html>
