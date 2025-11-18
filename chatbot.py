@@ -1,3 +1,5 @@
+import os
+from dotenv import load_dotenv
 import streamlit as st
 import numpy as np
 import google.generativeai as genai
@@ -6,7 +8,15 @@ import pickle
 import joblib
 from sklearn.tree import DecisionTreeClassifier
 
-genai.configure(api_key='AIzaSyA_tTbL5excWnfC3d56IbTOr0CgpKXM5JY')
+# Load variables from .env if present
+load_dotenv()
+
+# Configure Gemini API key via environment variable for security
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+else:
+    genai.configure(api_key=None)
 
 def initialize_session_state():
     if "messages" not in st.session_state:
@@ -16,6 +26,13 @@ def initialize_session_state():
         st.session_state.responses = {}
         st.session_state.show_next_question = True
         
+TRAIN_COLUMNS = [
+    'Gender', 'Married', 'Dependents', 'Education', 'Self_Employed',
+    'ApplicantIncome', 'CoapplicantIncome', 'LoanAmount', 'Loan_Amount_Term',
+    'Credit_History', 'Property_Area'
+]
+
+
 def load_model():
     try:
         with open('model.pkl', 'rb') as file:
@@ -25,44 +42,60 @@ def load_model():
         st.error(f"Error loading model: {str(e)}")
         return None
 
-def preprocess_data(gender, married, dependents, education, employed, credit, area, 
+
+def load_scaler():
+    try:
+        with open('scaler.pkl', 'rb') as file:
+            scaler = pickle.load(file)
+        return scaler
+    except Exception as e:
+        st.error(f"Error loading scaler: {str(e)}")
+        return None
+
+def preprocess_data(gender, married, dependents, education, employed, credit, area,
                    ApplicantIncome, CoapplicantIncome, LoanAmount, Loan_Amount_Term):
     try:
-        # Existing preprocess_data function remains the same
-        male = 1 if gender.lower() == "male" else 0
-        married_yes = 1 if married.lower() == "yes" else 0
-        if dependents == '1':
-            dependents_1, dependents_2, dependents_3 = 1, 0, 0
-        elif dependents == '2':
-            dependents_1, dependents_2, dependents_3 = 0, 1, 0
-        elif dependents == "3+":
-            dependents_1, dependents_2, dependents_3 = 0, 0, 1
-        else:
-            dependents_1, dependents_2, dependents_3 = 0, 0, 0
+        gender_encoded = 1 if gender.lower() == "male" else 0
+        married_encoded = 1 if married.lower() == "yes" else 0
+        dependents_encoded = 3 if dependents == "3+" else int(dependents)
+        education_encoded = 0 if education.lower() == "graduate" else 1
+        self_employed_encoded = 1 if employed.lower() == "yes" else 0
 
-        not_graduate = 1 if education.lower() == "not graduate" else 0
-        employed_yes = 1 if employed.lower() == "yes" else 0
-        semiurban = 1 if area.lower() == "semiurban" else 0
-        urban = 1 if area.lower() == "urban" else 0
-
-        ApplicantIncomelog = np.log(float(ApplicantIncome))
-        totalincomelog = np.log(float(ApplicantIncome) + float(CoapplicantIncome))
-        LoanAmountlog = np.log(float(LoanAmount))
-        Loan_Amount_Termlog = np.log(float(Loan_Amount_Term))
-        if float(credit) >= 800 and float(credit) <= 1000:
-            credit = 1
+        area_lower = area.lower()
+        if area_lower == "rural":
+            property_area_encoded = 0
+        elif area_lower == "semiurban":
+            property_area_encoded = 1
         else:
-            credit = 0
+            property_area_encoded = 2
+
+        credit_history_encoded = 1 if float(credit) >= 700 else 0
 
         return [
-            credit, ApplicantIncomelog, LoanAmountlog, Loan_Amount_Termlog, totalincomelog,
-            male, married_yes, dependents_1, dependents_2, dependents_3, not_graduate, employed_yes, semiurban, urban
+            gender_encoded,
+            married_encoded,
+            dependents_encoded,
+            education_encoded,
+            self_employed_encoded,
+            float(ApplicantIncome),
+            float(CoapplicantIncome),
+            float(LoanAmount),
+            float(Loan_Amount_Term),
+            credit_history_encoded,
+            property_area_encoded
         ]
     except Exception as e:
         st.error(f"Error in preprocessing: {str(e)}")
         return None
 
 def show_chatbot():
+    if not GEMINI_API_KEY:
+        st.error(
+            "Gemini API key not configured. Please set the `GEMINI_API_KEY` "
+            "environment variable with a valid key before using the chatbot."
+        )
+        return
+
     st.title("🤖 Loan Prediction Chatbot")
     st.markdown("""
     Chat with our AI-powered chatbot to get personalized loan predictions.  
@@ -338,19 +371,32 @@ Provide your response in a structured and actionable format to help me take the 
                                         elif key == 'credit_history':
                                             credit_history = float(val)  # Expected to be a float
 
-                            features = preprocess_data(gender, married, dependents, education, self_employed, credit_history, property_area, applicant_income, coapplicant_income, loan_amount, loan_amount_term)
+                            features = preprocess_data(
+                                gender, married, dependents, education, self_employed,
+                                credit_history, property_area, applicant_income,
+                                coapplicant_income, loan_amount, loan_amount_term
+                            )
+                            if features is None:
+                                raise ValueError("Unable to preprocess inputs for prediction.")
+
                             model_predicted = load_model()
-                            prediction = model_predicted.predict([features])
+                            scaler = load_scaler()
+                            if model_predicted is None or scaler is None:
+                                raise ValueError("Prediction model or scaler is missing.")
+
+                            input_df = pd.DataFrame([features], columns=TRAIN_COLUMNS)
+                            input_scaled = scaler.transform(input_df)
+                            prediction = model_predicted.predict(input_scaled)[0]
                             
-                            if prediction == 'Y':
-                                prediction = 'Eligible for loan'
+                            if prediction == 1:
+                                prediction_text = 'Eligible for loan'
                                 st.balloons()
                                 st.markdown("### 🎉 Congratulations! Your loan application is likely approved!")
                             else:
-                                prediction = 'Not eligible for loan'
+                                prediction_text = 'Not eligible for loan'
                                 st.markdown("### ☠️ Danger! Your loan application has been **rejected**.")
                             #list that will contain message parts to send to the chat bot 
-                            response_part =[genai.protos.Part(function_response=genai.protos.FunctionResponse(name= function_name,response={"result":prediction}))] 
+                            response_part =[genai.protos.Part(function_response=genai.protos.FunctionResponse(name= function_name,response={"result":prediction_text}))] 
                             response=chat.send_message(response_part)
                             st.write(response.text)
 
