@@ -4,8 +4,14 @@ import numpy as np
 import pandas as pd
 from chatbot import show_chatbot
 
-# Load the pre-trained model
+# Load the pre-trained model and scaler
 model = pickle.load(open('model.pkl', 'rb'))
+scaler = pickle.load(open('scaler.pkl', 'rb'))
+
+# Define the exact feature order expected by the model
+TRAIN_COLUMNS = ['Gender', 'Married', 'Dependents', 'Education', 'Self_Employed',
+                 'ApplicantIncome', 'CoapplicantIncome', 'LoanAmount', 'Loan_Amount_Term',
+                 'Credit_History', 'Property_Area']
 
 # Streamlit Layout for Home Page
 def home_page():
@@ -79,34 +85,61 @@ def prediction_page():
     area = st.selectbox("🏠 Property Area", ["Urban", "Semiurban", "Rural"])
     ApplicantIncome = st.slider("💰 Applicant Income", min_value=1000, max_value=100000, step=1000, value=5000)
     CoapplicantIncome = st.slider("🤝 Coapplicant Income", min_value=0, max_value=100000, step=1000, value=0)
-    LoanAmount = st.slider("🏦 Loan Amount", min_value=1, max_value=100000, step=10, value=100)
+    LoanAmount = st.slider("🏦 Loan Amount", min_value=1, max_value=10000, step=10, value=150)
+    st.info("💡 **Note:** For best results, use loan amounts between $50-$700 (the model was trained on this range). Larger amounts may be rejected.")
     Loan_Amount_Term = st.select_slider("📅 Loan Amount Term (in days)", options=[360, 180, 240, 120], value=360)
 
         # Preprocess input for the trained model (exactly 11 features)
     def preprocess_data(gender, married, dependents, education, employed, credit, area,
                         ApplicantIncome, CoapplicantIncome, LoanAmount, Loan_Amount_Term):
-
-        male = 1 if gender == "Male" else 0
-        married_yes = 1 if married == "Yes" else 0
-        dependents_num = 3 if dependents == "3+" else int(dependents)
-        not_graduate = 1 if education == "Not Graduate" else 0
-        employed_yes = 1 if employed == "Yes" else 0
+        """
+        Preprocess user inputs to match the model's expected format.
+        Uses LabelEncoder-style encoding as used during training.
+        """
+        # Gender: Male=1, Female=0 (LabelEncoder typically encodes alphabetically: Female=0, Male=1)
+        gender_encoded = 1 if gender == "Male" else 0
+        
+        # Married: Yes=1, No=0
+        married_encoded = 1 if married == "Yes" else 0
+        
+        # Dependents: Convert "3+" to 3, otherwise use the number
+        dependents_encoded = 3 if dependents == "3+" else int(dependents)
+        
+        # Education: Graduate=0, Not Graduate=1 (LabelEncoder encodes alphabetically: Graduate=0, Not Graduate=1)
+        education_encoded = 0 if education == "Graduate" else 1
+        
+        # Self_Employed: Yes=1, No=0
+        self_employed_encoded = 1 if employed == "Yes" else 0
+        
+        # Property_Area: Rural=0, Semiurban=1, Urban=2 (LabelEncoder encodes alphabetically)
         if area == "Rural":
-            property_area = 0
+            property_area_encoded = 0
         elif area == "Semiurban":
-            property_area = 1
-        else:
-            property_area = 2
+            property_area_encoded = 1
+        else:  # Urban
+            property_area_encoded = 2
+        
+        # Credit_History: Convert credit score (300-850) to binary (0 or 1)
+        # Typically: credit score >= 650-700 is considered good (1), else (0)
+        # Using 700 as threshold for good credit history
+        credit_history_encoded = 1 if credit >= 700 else 0
 
-        # Simplify credit score to binary (matching model)
-        credit_bin = 1 if 800 <= credit <= 1000 else 0
-
-        # Return features in the exact order the model expects
-        return [
-            male, married_yes, dependents_num, not_graduate, employed_yes,
-            ApplicantIncome, CoapplicantIncome, LoanAmount, Loan_Amount_Term,
-            credit_bin, property_area
+        # Return features in the exact order the model expects (matching TRAIN_COLUMNS)
+        features = [
+            gender_encoded,           # Gender
+            married_encoded,          # Married
+            dependents_encoded,       # Dependents
+            education_encoded,        # Education
+            self_employed_encoded,    # Self_Employed
+            ApplicantIncome,          # ApplicantIncome
+            CoapplicantIncome,        # CoapplicantIncome
+            LoanAmount,               # LoanAmount
+            Loan_Amount_Term,         # Loan_Amount_Term
+            credit_history_encoded,   # Credit_History
+            property_area_encoded     # Property_Area
         ]
+        
+        return features
 
     if st.button("🔮 Predict Loan Status"):
         # Preprocess inputs
@@ -115,14 +148,18 @@ def prediction_page():
             ApplicantIncome, CoapplicantIncome, LoanAmount, Loan_Amount_Term
         )
 
-        # Convert to DataFrame with correct feature names
-        input_df = pd.DataFrame([features], columns=model.feature_names_in_)
+        # Convert to DataFrame with correct feature names and order
+        input_df = pd.DataFrame([features], columns=TRAIN_COLUMNS)
+        
+        # Scale the input using the same scaler used during training
+        input_scaled = scaler.transform(input_df)
 
-        # Make prediction
-        prediction = model.predict(input_df)[0]
+        # Make prediction (model returns 0 for 'N' or 1 for 'Y')
+        prediction = model.predict(input_scaled)[0]
 
         # Display prediction with messages
-        if prediction == "N":
+        # Model returns: 0 = 'N' (Rejected), 1 = 'Y' (Approved)
+        if prediction == 0:
             st.error("⚠️ Loan Status: **Rejected**")
             st.markdown("### ☠️ Danger! Your loan application has been **rejected**.")
             st.markdown("""
@@ -137,7 +174,7 @@ def prediction_page():
             - Consider **reducing your loan amount** or opting for a longer repayment term.
             - **Reassess your finances** and improve your overall financial health before reapplying.
             """)
-        else:
+        else:  # prediction == 1
             st.success("✅ Loan Status: **Approved**")
             st.markdown("### 🎉 Congratulations! Your loan application is likely approved!")
             st.balloons()
