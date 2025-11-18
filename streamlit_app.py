@@ -1,6 +1,7 @@
 import streamlit as st
 import pickle
 import numpy as np
+import pandas as pd
 from chatbot import show_chatbot
 
 # Load the pre-trained model
@@ -68,7 +69,7 @@ def prediction_page():
     st.title("🚀 Loan Prediction System")
     st.markdown("### 📋 Enter Loan Application Details to Predict Your Loan Status!")
 
-    # User input fields for prediction
+    # User input fields
     gender = st.selectbox("👤 Gender", ["Male", "Female"])
     married = st.selectbox("💍 Marital Status", ["Yes", "No"])
     dependents = st.selectbox("👨‍👩‍👧 Dependents", ["0", "1", "2", "3+"])
@@ -81,48 +82,47 @@ def prediction_page():
     LoanAmount = st.slider("🏦 Loan Amount", min_value=1, max_value=100000, step=10, value=100)
     Loan_Amount_Term = st.select_slider("📅 Loan Amount Term (in days)", options=[360, 180, 240, 120], value=360)
 
-    # Preprocess input data and make predictions
-    def preprocess_data(gender, married, dependents, education, employed, credit, area, ApplicantIncome, CoapplicantIncome, LoanAmount, Loan_Amount_Term):
+        # Preprocess input for the trained model (exactly 11 features)
+    def preprocess_data(gender, married, dependents, education, employed, credit, area,
+                        ApplicantIncome, CoapplicantIncome, LoanAmount, Loan_Amount_Term):
+
         male = 1 if gender == "Male" else 0
         married_yes = 1 if married == "Yes" else 0
-        if dependents == '1':
-            dependents_1, dependents_2, dependents_3 = 1, 0, 0
-        elif dependents == '2':
-            dependents_1, dependents_2, dependents_3 = 0, 1, 0
-        elif dependents == "3+":
-            dependents_1, dependents_2, dependents_3 = 0, 0, 1
-        else:
-            dependents_1, dependents_2, dependents_3 = 0, 0, 0
-
+        dependents_num = 3 if dependents == "3+" else int(dependents)
         not_graduate = 1 if education == "Not Graduate" else 0
         employed_yes = 1 if employed == "Yes" else 0
-        semiurban = 1 if area == "Semiurban" else 0
-        urban = 1 if area == "Urban" else 0
+        if area == "Rural":
+            property_area = 0
+        elif area == "Semiurban":
+            property_area = 1
+        else:
+            property_area = 2
 
-        ApplicantIncomelog = np.log(ApplicantIncome)
-        totalincomelog = np.log(ApplicantIncome + CoapplicantIncome)
-        LoanAmountlog = np.log(LoanAmount)
-        Loan_Amount_Termlog = np.log(Loan_Amount_Term)
-        if credit <= 1000 and credit >= 800:
-            credit = 1
-        else :
-            credit = 0
-            
+        # Simplify credit score to binary (matching model)
+        credit_bin = 1 if 800 <= credit <= 1000 else 0
 
+        # Return features in the exact order the model expects
         return [
-            credit, ApplicantIncomelog, LoanAmountlog, Loan_Amount_Termlog, totalincomelog,
-            male, married_yes, dependents_1, dependents_2, dependents_3, not_graduate, employed_yes, semiurban, urban
+            male, married_yes, dependents_num, not_graduate, employed_yes,
+            ApplicantIncome, CoapplicantIncome, LoanAmount, Loan_Amount_Term,
+            credit_bin, property_area
         ]
 
     if st.button("🔮 Predict Loan Status"):
-        features = preprocess_data(gender, married, dependents, education, employed, credit, area, ApplicantIncome, CoapplicantIncome, LoanAmount, Loan_Amount_Term)
+        # Preprocess inputs
+        features = preprocess_data(
+            gender, married, dependents, education, employed, credit, area,
+            ApplicantIncome, CoapplicantIncome, LoanAmount, Loan_Amount_Term
+        )
 
-        # Prediction
-        prediction = model.predict([features])
+        # Convert to DataFrame with correct feature names
+        input_df = pd.DataFrame([features], columns=model.feature_names_in_)
 
-        # Convert prediction to human-readable format
+        # Make prediction
+        prediction = model.predict(input_df)[0]
+
+        # Display prediction with messages
         if prediction == "N":
-            prediction = "No"
             st.error("⚠️ Loan Status: **Rejected**")
             st.markdown("### ☠️ Danger! Your loan application has been **rejected**.")
             st.markdown("""
@@ -136,11 +136,8 @@ def prediction_page():
             - **Immediate action:** Improve your credit score by paying off existing debts.
             - Consider **reducing your loan amount** or opting for a longer repayment term.
             - **Reassess your finances** and improve your overall financial health before reapplying.
-
-            *Take care to address these issues before trying again!*
             """)
         else:
-            prediction = "Yes"
             st.success("✅ Loan Status: **Approved**")
             st.markdown("### 🎉 Congratulations! Your loan application is likely approved!")
             st.balloons()
@@ -149,9 +146,9 @@ def prediction_page():
             - Good credit history score
             - Sufficient income to cover loan repayment
             - Positive factors supporting your loan approval
-
-            Enjoy your financial journey with the new loan!
             """)
+
+
 def show_chatbot_page():
     # Link the chatbot to the chatbot page
     show_chatbot()
